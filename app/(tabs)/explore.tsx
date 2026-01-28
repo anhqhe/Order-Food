@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -8,8 +8,31 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabTwoScreen() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/auth/login');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -30,6 +53,24 @@ export default function TabTwoScreen() {
           Explore
         </ThemedText>
       </ThemedView>
+
+      {/* User Info */}
+      {user && (
+        <ThemedView style={styles.userContainer}>
+          <ThemedView style={styles.userInfo}>
+            <Ionicons name="person-circle" size={48} color="#FF6B35" />
+            <ThemedView style={styles.userDetails}>
+              <ThemedText type="defaultSemiBold">{user.name}</ThemedText>
+              <ThemedText style={styles.userEmail}>{user.email}</ThemedText>
+            </ThemedView>
+          </ThemedView>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={20} color="#FFF" />
+            <ThemedText style={styles.logoutText}>Đăng xuất</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      )}
+
       <ThemedText>This app includes example code to help you get started.</ThemedText>
       <Collapsible title="File-based routing">
         <ThemedText>
@@ -108,5 +149,38 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+  },
+  userContainer: {
+    backgroundColor: '#FFF5F2',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    gap: 12,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  userDetails: {
+    flex: 1,
+    gap: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#666',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B35',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  logoutText: {
+    color: '#FFF',
+    fontWeight: '600',
   },
 });
