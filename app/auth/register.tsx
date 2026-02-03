@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,19 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  Animated,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+
+const { width, height } = Dimensions.get('window');
 
 export default function RegisterScreen() {
   const { register } = useAuth();
@@ -32,6 +39,25 @@ export default function RegisterScreen() {
     password?: string;
     confirmPassword?: string;
   }>({});
+
+  // Animations
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const validateForm = () => {
     const newErrors: any = {};
@@ -74,7 +100,6 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(name.trim(), email.trim(), phone.trim(), password);
-      // Navigation will be handled by AuthContext
       router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Đăng ký thất bại', error.message);
@@ -84,183 +109,286 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* Gradient Background */}
+      <LinearGradient
+        colors={['#1A1A2E', '#16213E', '#0F3460']}
+        style={styles.gradient}
+      />
+
+      {/* Decorative Circles */}
+      <View style={styles.circle1} />
+      <View style={styles.circle2} />
+      <View style={styles.circle3} />
+
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="person-add" size={48} color="#FF6B35" />
-          </View>
-          <Text style={styles.title}>Đăng Ký</Text>
-          <Text style={styles.subtitle}>Tạo tài khoản mới</Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View
+            style={[
+              styles.content,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={24} color="#FFF" />
+              </TouchableOpacity>
+              <View style={styles.iconContainer}>
+                <LinearGradient
+                  colors={['#667EEA', '#764BA2']}
+                  style={styles.iconGradient}
+                >
+                  <Ionicons name="person-add" size={36} color="#FFF" />
+                </LinearGradient>
+              </View>
+              <Text style={styles.title}>Tạo tài khoản</Text>
+              <Text style={styles.subtitle}>Đăng ký để bắt đầu đặt đồ ăn</Text>
+            </View>
 
-        {/* Form */}
-        <View style={styles.form}>
-          <Input
-            label="Họ và tên"
-            placeholder="Nhập họ và tên"
-            value={name}
-            onChangeText={(text) => {
-              setName(text);
-              setErrors({ ...errors, name: undefined });
-            }}
-            error={errors.name}
-            autoCapitalize="words"
-          />
+            {/* Glass Card */}
+            <View style={styles.glassCard}>
+              <BlurView intensity={20} style={styles.blurContainer}>
+                <View style={styles.formContainer}>
+                  <Input
+                    label="Họ và tên"
+                    placeholder="Nhập họ và tên"
+                    value={name}
+                    onChangeText={(text) => {
+                      setName(text);
+                      setErrors({ ...errors, name: undefined });
+                    }}
+                    error={errors.name}
+                    autoCapitalize="words"
+                    icon="person-outline"
+                    variant="glass"
+                  />
 
-          <Input
-            label="Email"
-            placeholder="Nhập email của bạn"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setErrors({ ...errors, email: undefined });
-            }}
-            error={errors.email}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
+                  <Input
+                    label="Email"
+                    placeholder="Nhập email của bạn"
+                    value={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      setErrors({ ...errors, email: undefined });
+                    }}
+                    error={errors.email}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    icon="mail-outline"
+                    variant="glass"
+                  />
 
-          <Input
-            label="Số điện thoại"
-            placeholder="Nhập số điện thoại"
-            value={phone}
-            onChangeText={(text) => {
-              setPhone(text);
-              setErrors({ ...errors, phone: undefined });
-            }}
-            error={errors.phone}
-            keyboardType="phone-pad"
-          />
+                  <Input
+                    label="Số điện thoại"
+                    placeholder="Nhập số điện thoại"
+                    value={phone}
+                    onChangeText={(text) => {
+                      setPhone(text);
+                      setErrors({ ...errors, phone: undefined });
+                    }}
+                    error={errors.phone}
+                    keyboardType="phone-pad"
+                    icon="call-outline"
+                    variant="glass"
+                  />
 
-          <Input
-            label="Mật khẩu"
-            placeholder="Nhập mật khẩu"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              setErrors({ ...errors, password: undefined });
-            }}
-            error={errors.password}
-            isPassword
-            showPassword={showPassword}
-            onTogglePassword={() => setShowPassword(!showPassword)}
-            autoCapitalize="none"
-          />
+                  <Input
+                    label="Mật khẩu"
+                    placeholder="Nhập mật khẩu"
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setErrors({ ...errors, password: undefined });
+                    }}
+                    error={errors.password}
+                    isPassword
+                    showPassword={showPassword}
+                    onTogglePassword={() => setShowPassword(!showPassword)}
+                    autoCapitalize="none"
+                    icon="lock-closed-outline"
+                    variant="glass"
+                  />
 
-          <Input
-            label="Xác nhận mật khẩu"
-            placeholder="Nhập lại mật khẩu"
-            value={confirmPassword}
-            onChangeText={(text) => {
-              setConfirmPassword(text);
-              setErrors({ ...errors, confirmPassword: undefined });
-            }}
-            error={errors.confirmPassword}
-            isPassword
-            showPassword={showConfirmPassword}
-            onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
-            autoCapitalize="none"
-          />
+                  <Input
+                    label="Xác nhận mật khẩu"
+                    placeholder="Nhập lại mật khẩu"
+                    value={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      setErrors({ ...errors, confirmPassword: undefined });
+                    }}
+                    error={errors.confirmPassword}
+                    isPassword
+                    showPassword={showConfirmPassword}
+                    onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+                    autoCapitalize="none"
+                    icon="shield-checkmark-outline"
+                    variant="glass"
+                  />
 
-          <Button
-            title="Đăng Ký"
-            onPress={handleRegister}
-            loading={loading}
-            variant="primary"
-          />
+                  <Button
+                    title="Đăng Ký"
+                    onPress={handleRegister}
+                    loading={loading}
+                    variant="primary"
+                    icon="checkmark-circle"
+                    iconPosition="right"
+                  />
+                </View>
+              </BlurView>
+            </View>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Login Link */}
-          <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Đã có tài khoản? </Text>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Text style={styles.loginLink}>Đăng nhập ngay</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Đã có tài khoản? </Text>
+              <TouchableOpacity onPress={() => router.back()}>
+                <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#1A1A2E',
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  circle1: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(102, 126, 234, 0.15)',
+    top: -100,
+    right: -100,
+  },
+  circle2: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(118, 75, 162, 0.1)',
+    bottom: 200,
+    left: -50,
+  },
+  circle3: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    bottom: -50,
+    right: 50,
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 50,
+  },
+  content: {
+    flex: 1,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
-  iconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#FFF5F2',
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: '#FF6B35',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+  },
+  iconContainer: {
+    marginBottom: 16,
+    marginTop: 20,
+  },
+  iconGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#667EEA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
   },
   title: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: '#FFF',
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
   },
-  form: {
+  glassCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  blurContainer: {
+    padding: 24,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 24,
+  },
+  formContainer: {
     width: '100%',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 24,
   },
   loginText: {
-    color: '#666',
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 15,
   },
   loginLink: {
-    color: '#FF6B35',
-    fontSize: 14,
+    color: '#667EEA',
+    fontSize: 15,
     fontWeight: '700',
   },
 });
