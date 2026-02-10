@@ -72,4 +72,31 @@ export const authAPI = {
   },
 };
 
+// Food & Order API functions
+export const foodAPI = {
+  // Get all available foods
+  getFoods: async () => {
+    const response = await api.get('/foods');
+    return response.data;
+  },
+};
+
+export const orderAPI = {
+  // Create new order
+  createOrder: async (payload: {
+    items: { foodId: string; quantity: number }[];
+    address: string;
+    note?: string;
+  }) => {
+    const response = await api.post('/orders', payload);
+    return response.data;
+  },
+
+  // Get current user's orders
+  getMyOrders: async () => {
+    const response = await api.get('/orders/my');
+    return response.data;
+  },
+};
+
 export default api;

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -6,6 +6,7 @@ import {
   ActivityIndicator, 
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Dimensions,
   Animated,
   StatusBar,
@@ -14,6 +15,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { foodAPI, orderAPI } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -26,15 +28,27 @@ const categories = [
   { id: 5, name: 'Drinks', icon: 'cafe-outline', color: '#4B7BE5' },
 ];
 
-// Dummy featured items
-const featuredItems = [
-  { id: 1, name: 'Combo Pizza Đặc Biệt', price: '199.000đ', rating: 4.8, image: '🍕' },
-  { id: 2, name: 'Burger King Size', price: '89.000đ', rating: 4.5, image: '🍔' },
-  { id: 3, name: 'Sushi Set 12 pcs', price: '259.000đ', rating: 4.9, image: '🍣' },
-];
+type FoodItem = {
+  _id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+  category?: string;
+};
+
+type CartItem = {
+  food: FoodItem;
+  quantity: number;
+};
 
 export default function IndexScreen() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [isFoodsLoading, setIsFoodsLoading] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Animations
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -57,9 +71,99 @@ export default function IndexScreen() {
             useNativeDriver: true,
           }),
         ]).start();
+        loadFoods();
       }
     }
   }, [isAuthenticated, isLoading]);
+
+  const loadFoods = async () => {
+    try {
+      setIsFoodsLoading(true);
+      const response = await foodAPI.getFoods();
+      if (response.success) {
+        setFoods(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading foods:', error);
+    } finally {
+      setIsFoodsLoading(false);
+    }
+  };
+
+  const handleAddToCart = (food: FoodItem) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.food._id === food._id);
+      if (existing) {
+        return prev.map((item) =>
+          item.food._id === food._id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { food, quantity: 1 }];
+    });
+  };
+
+  const handleRemoveFromCart = (foodId: string) => {
+    setCart((prev) => prev.filter((item) => item.food._id !== foodId));
+  };
+
+  const totalItems = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart]
+  );
+
+  const totalPrice = useMemo(
+    () => cart.reduce((sum, item) => sum + item.food.price * item.quantity, 0),
+    [cart]
+  );
+
+  const filteredFoods = useMemo(() => {
+    if (!searchQuery.trim()) return foods;
+    const q = searchQuery.trim().toLowerCase();
+    return foods.filter((item) => {
+      const name = item.name?.toLowerCase() || '';
+      const desc = item.description?.toLowerCase() || '';
+      const category = item.category?.toLowerCase() || '';
+      return (
+        name.includes(q) ||
+        desc.includes(q) ||
+        category.includes(q)
+      );
+    });
+  }, [foods, searchQuery]);
+
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!cart.length || isOrdering) return;
+
+    try {
+      setIsOrdering(true);
+      const payload = {
+        items: cart.map((item) => ({
+          foodId: item.food._id,
+          quantity: item.quantity,
+        })),
+        // Đơn giản: dùng tên user làm địa chỉ demo
+        address: 'Địa chỉ giao hàng của ' + (user?.name || 'khách hàng'),
+      };
+
+      const response = await orderAPI.createOrder(payload);
+
+      if (response.success) {
+        setCart([]);
+        // Có thể điều hướng sang màn hình lịch sử / thông báo sau
+        console.log('Order created:', response.data);
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+    } finally {
+      setIsOrdering(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -105,13 +209,22 @@ export default function IndexScreen() {
           </View>
 
           {/* Search Bar */}
-          <TouchableOpacity style={styles.searchBar}>
+          <View style={styles.searchBar}>
             <Ionicons name="search-outline" size={20} color="rgba(255,255,255,0.5)" />
-            <Text style={styles.searchPlaceholder}>Tìm kiếm món ăn...</Text>
-            <View style={styles.filterBtn}>
-              <Ionicons name="options-outline" size={18} color="#FF6B35" />
-            </View>
-          </TouchableOpacity>
+            <TextInput
+              placeholder="Tìm kiếm món ăn (pizza, burger, sushi...)"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Promo Banner */}
           <LinearGradient
@@ -153,35 +266,48 @@ export default function IndexScreen() {
             ))}
           </ScrollView>
 
-          {/* Featured Items */}
+          {/* Featured Items / Food List */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Món nổi bật</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>Xem tất cả</Text>
+            <TouchableOpacity onPress={loadFoods}>
+              <Text style={styles.seeAll}>Làm mới</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.featuredContainer}>
-            {featuredItems.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.featuredCard}>
-                <View style={styles.featuredImageContainer}>
-                  <Text style={styles.featuredEmoji}>{item.image}</Text>
-                </View>
-                <View style={styles.featuredInfo}>
-                  <Text style={styles.featuredName}>{item.name}</Text>
-                  <View style={styles.featuredMeta}>
-                    <View style={styles.ratingContainer}>
-                      <Ionicons name="star" size={14} color="#FFB800" />
-                      <Text style={styles.ratingText}>{item.rating}</Text>
-                    </View>
-                    <Text style={styles.featuredPrice}>{item.price}</Text>
+            {isFoodsLoading ? (
+              <View style={styles.foodLoadingContainer}>
+                <ActivityIndicator size="small" color="#FF6B35" />
+                <Text style={styles.foodLoadingText}>Đang tải món ăn...</Text>
+              </View>
+            ) : foods.length === 0 ? (
+              <Text style={styles.emptyFoodText}>Chưa có món ăn nào. Hãy seed dữ liệu từ backend.</Text>
+            ) : (
+              filteredFoods.map((item) => (
+                <View key={item._id} style={styles.featuredCard}>
+                  <View style={styles.featuredImageContainer}>
+                    <Text style={styles.featuredEmoji}>{item.image || '🍽️'}</Text>
                   </View>
+                  <View style={styles.featuredInfo}>
+                    <Text style={styles.featuredName}>{item.name}</Text>
+                    {item.description ? (
+                      <Text style={styles.featuredDescription} numberOfLines={2}>
+                        {item.description}
+                      </Text>
+                    ) : null}
+                    <View style={styles.featuredMeta}>
+                      <Text style={styles.featuredPrice}>{formatCurrency(item.price)}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.addBtn}
+                    onPress={() => handleAddToCart(item)}
+                  >
+                    <Ionicons name="add" size={20} color="#FFF" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.addBtn}>
-                  <Ionicons name="add" size={20} color="#FFF" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
+              ))
+            )}
           </View>
 
           {/* Quick Actions */}
@@ -227,9 +353,43 @@ export default function IndexScreen() {
             </View>
           </View>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 140 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* Cart Summary */}
+      {totalItems > 0 && (
+        <View style={styles.cartBarContainer}>
+          <LinearGradient
+            colors={['#1A1A2E', '#16213E']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.cartBar}
+          >
+            <View style={styles.cartInfo}>
+              <Text style={styles.cartTitle}>Giỏ hàng</Text>
+              <Text style={styles.cartSubtitle}>
+                {totalItems} món • {formatCurrency(totalPrice)}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.cartButton, isOrdering && styles.cartButtonDisabled]}
+              onPress={handlePlaceOrder}
+              disabled={isOrdering}
+            >
+              {isOrdering ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons name="bag-check-outline" size={18} color="#FFF" />
+                  <Text style={styles.cartButtonText}>Đặt hàng</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+      )}
     </View>
   );
 }
@@ -297,11 +457,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 24,
   },
-  searchPlaceholder: {
+  searchInput: {
     flex: 1,
     marginLeft: 12,
     fontSize: 15,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(255,255,255,0.9)',
   },
   filterBtn: {
     width: 36,
@@ -425,6 +585,11 @@ const styles = StyleSheet.create({
     color: '#FFF',
     marginBottom: 8,
   },
+  featuredDescription: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 4,
+  },
   featuredMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -452,6 +617,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
+  },
+  foodLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  foodLoadingText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  emptyFoodText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+  },
+  cartBarContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  cartBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  cartInfo: {
+    flex: 1,
+  },
+  cartTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 2,
+  },
+  cartSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  cartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    gap: 6,
+  },
+  cartButtonDisabled: {
+    opacity: 0.7,
+  },
+  cartButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
   },
   quickActions: {
     paddingHorizontal: 24,
