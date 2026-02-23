@@ -34,7 +34,7 @@ const stats = [
 ];
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
@@ -137,6 +137,30 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.7)" />
           </LinearGradient>
         </TouchableOpacity>
+
+        {/* Admin Panel Button - only for admins */}
+        {isAdmin && (
+          <TouchableOpacity
+            style={styles.adminBanner}
+            onPress={() => router.push('/(admin)' as any)}
+          >
+            <LinearGradient
+              colors={['#FF6B6B', '#ee5a24']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.premiumGradient}
+            >
+              <View style={styles.premiumContent}>
+                <Ionicons name="shield-checkmark" size={28} color="#FFF" />
+                <View style={styles.premiumTextContainer}>
+                  <Text style={styles.premiumTitle}>Admin Panel</Text>
+                  <Text style={styles.premiumSubtitle}>Quản lý món ăn & đơn hàng</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.7)" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Menu Items */}
         <View style={styles.menuSection}>
@@ -301,6 +325,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   premiumBanner: {
+    marginHorizontal: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  adminBanner: {
     marginHorizontal: 24,
     borderRadius: 16,
     overflow: 'hidden',

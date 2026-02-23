@@ -8,7 +8,6 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
-  Animated,
   Dimensions,
   StatusBar,
 } from 'react-native';
@@ -40,24 +39,6 @@ export default function RegisterScreen() {
     confirmPassword?: string;
   }>({});
 
-  // Animations
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(50)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const validateForm = () => {
     const newErrors: any = {};
@@ -132,14 +113,8 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.content,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+          <View
+            style={styles.content}
           >
             {/* Header */}
             <View style={styles.header}>
@@ -262,7 +237,7 @@ export default function RegisterScreen() {
                 <Text style={styles.loginLink}>Đăng nhập ngay</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

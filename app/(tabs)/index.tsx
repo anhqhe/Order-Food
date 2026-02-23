@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   TextInput,
   Dimensions,
-  Animated,
   StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -43,34 +42,20 @@ type CartItem = {
 };
 
 export default function IndexScreen() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, isAdmin } = useAuth();
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [isFoodsLoading, setIsFoodsLoading] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isOrdering, setIsOrdering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Animations
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(30)).current;
-
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
         router.replace('/auth/login');
+      } else if (isAdmin) {
+        router.replace('/(admin)' as any);
       } else {
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ]).start();
         loadFoods();
       }
     }
@@ -190,12 +175,7 @@ export default function IndexScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View
-          style={{
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
-        >
+        <View>
           {/* Header */}
           <View style={styles.header}>
             <View>
@@ -354,7 +334,7 @@ export default function IndexScreen() {
           </View>
 
           <View style={{ height: 140 }} />
-        </Animated.View>
+        </View>
       </ScrollView>
 
       {/* Cart Summary */}

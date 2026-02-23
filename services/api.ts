@@ -99,4 +99,62 @@ export const orderAPI = {
   },
 };
 
+// Admin API functions
+export const adminAPI = {
+  // Get dashboard stats
+  getStats: async () => {
+    const response = await api.get('/admin/stats');
+    return response.data;
+  },
+
+  // Get all foods (including unavailable)
+  getFoods: async () => {
+    const response = await api.get('/admin/foods');
+    return response.data;
+  },
+
+  // Create new food
+  createFood: async (foodData: {
+    name: string;
+    description?: string;
+    price: number;
+    image?: string;
+    category?: string;
+  }) => {
+    const response = await api.post('/admin/foods', foodData);
+    return response.data;
+  },
+
+  // Update food
+  updateFood: async (id: string, foodData: {
+    name?: string;
+    description?: string;
+    price?: number;
+    image?: string;
+    category?: string;
+    isAvailable?: boolean;
+  }) => {
+    const response = await api.put(`/admin/foods/${id}`, foodData);
+    return response.data;
+  },
+
+  // Delete food
+  deleteFood: async (id: string) => {
+    const response = await api.delete(`/admin/foods/${id}`);
+    return response.data;
+  },
+
+  // Get all orders
+  getOrders: async () => {
+    const response = await api.get('/admin/orders');
+    return response.data;
+  },
+
+  // Update order status
+  updateOrderStatus: async (id: string, status: string) => {
+    const response = await api.put(`/admin/orders/${id}/status`, { status });
+    return response.data;
+  },
+};
+
 export default api;

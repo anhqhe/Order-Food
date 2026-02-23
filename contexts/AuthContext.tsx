@@ -8,6 +8,7 @@ interface User {
   name: string;
   email: string;
   phone: string;
+  role: 'user' | 'admin';
 }
 
 interface AuthContextType {
@@ -15,7 +16,8 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  isAdmin: boolean;
+  login: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -61,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setToken(token);
         setUser(user);
+        return user;
       } else {
         throw new Error(response.message || 'Đăng nhập thất bại');
       }
@@ -110,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     token,
     isLoading,
     isAuthenticated: !!token && !!user,
+    isAdmin: !!user && user.role === 'admin',
     login,
     register,
     logout,

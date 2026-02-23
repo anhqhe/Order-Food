@@ -8,7 +8,6 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
-  Animated,
   Dimensions,
   StatusBar,
 } from 'react-native';
@@ -30,24 +29,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  // Animations
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(50)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -73,8 +54,12 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(email.trim(), password);
-      router.replace('/(tabs)');
+      const loggedInUser = await login(email.trim(), password);
+      if (loggedInUser?.role === 'admin') {
+        router.replace('/(admin)' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error: any) {
       Alert.alert('Đăng nhập thất bại', error.message);
     } finally {
@@ -106,14 +91,8 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.content,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+          <View
+            style={styles.content}
           >
             {/* Header */}
             <View style={styles.header}>
@@ -190,7 +169,7 @@ export default function LoginScreen() {
                 <Text style={styles.registerLink}>Đăng ký ngay</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
