@@ -1,11 +1,39 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-// Base URL - thay đổi theo địa chỉ IP của máy bạn khi test trên thiết bị thật
-// Để test trên Android emulator: http://10.0.2.2:5000
-// Để test trên iOS simulator: http://localhost:5000
-// Để test trên thiết bị thật: http://<YOUR_IP>:5000
-const API_BASE_URL = 'http://10.0.2.2:5000/api';
+// Platform-aware token storage (SecureStore không hỗ trợ web)
+export const tokenStorage = {
+  getToken: async (): Promise<string | null> => {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem('userToken');
+    }
+    return SecureStore.getItemAsync('userToken');
+  },
+  setToken: async (token: string): Promise<void> => {
+    if (Platform.OS === 'web') {
+      localStorage.setItem('userToken', token);
+      return;
+    }
+    await SecureStore.setItemAsync('userToken', token);
+  },
+  removeToken: async (): Promise<void> => {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem('userToken');
+      return;
+    }
+    await SecureStore.deleteItemAsync('userToken');
+  },
+};
+
+// Base URL - tự detect platform
+// Web: localhost, Android emulator: 10.0.2.2, iOS simulator: localhost
+const API_BASE_URL =
+  Platform.OS === 'web'
+    ? 'http://localhost:5000/api'
+    : Platform.OS === 'android'
+      ? 'http://10.0.2.2:5000/api'
+      : 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -20,7 +48,7 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await SecureStore.getItemAsync('userToken');
+      const token = await tokenStorage.getToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }

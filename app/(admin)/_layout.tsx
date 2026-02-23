@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,21 +9,27 @@ export default function AdminLayout() {
   const { logout } = useAuth();
 
   const handleLogout = () => {
-    Alert.alert(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đăng xuất',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/auth/login');
+    if (Platform.OS === 'web') {
+      if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+        logout().then(() => router.replace('/auth/login'));
+      }
+    } else {
+      Alert.alert(
+        'Đăng xuất',
+        'Bạn có chắc chắn muốn đăng xuất?',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          {
+            text: 'Đăng xuất',
+            style: 'destructive',
+            onPress: async () => {
+              await logout();
+              router.replace('/auth/login');
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (

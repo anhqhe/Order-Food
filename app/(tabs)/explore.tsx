@@ -33,25 +33,33 @@ const stats = [
   { label: 'Điểm', value: '450' },
 ];
 
+import { Platform } from 'react-native';
+
 export default function ProfileScreen() {
   const { user, logout, isAdmin } = useAuth();
 
   const handleLogout = () => {
-    Alert.alert(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đăng xuất',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/auth/login');
+    if (Platform.OS === 'web') {
+      if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+        logout().then(() => router.replace('/auth/login'));
+      }
+    } else {
+      Alert.alert(
+        'Đăng xuất',
+        'Bạn có chắc chắn muốn đăng xuất?',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          {
+            text: 'Đăng xuất',
+            style: 'destructive',
+            onPress: async () => {
+              await logout();
+              router.replace('/auth/login');
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (
