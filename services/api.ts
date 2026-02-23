@@ -75,8 +75,22 @@ export const authAPI = {
 // Food & Order API functions
 export const foodAPI = {
   // Get all available foods
-  getFoods: async () => {
-    const response = await api.get('/foods');
+  getFoods: async (category?: string) => {
+    const params: any = {};
+    if (category) params.category = category;
+    const response = await api.get('/foods', { params });
+    return response.data;
+  },
+
+  // Get categories
+  getCategories: async () => {
+    const response = await api.get('/foods/categories');
+    return response.data;
+  },
+
+  // Seed foods
+  seedFoods: async () => {
+    const response = await api.post('/foods/seed');
     return response.data;
   },
 };

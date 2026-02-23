@@ -18,14 +18,16 @@ import { foodAPI, orderAPI } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 
-// Dummy data for food categories
-const categories = [
-  { id: 1, name: 'Pizza', icon: 'pizza-outline', color: '#FF6B35' },
-  { id: 2, name: 'Burger', icon: 'fast-food-outline', color: '#FFB800' },
-  { id: 3, name: 'Sushi', icon: 'fish-outline', color: '#00C9A7' },
-  { id: 4, name: 'Noodles', icon: 'restaurant-outline', color: '#845EC2' },
-  { id: 5, name: 'Drinks', icon: 'cafe-outline', color: '#4B7BE5' },
-];
+// Icon mapping cho categories
+const CATEGORY_ICONS: Record<string, { icon: string; color: string }> = {
+  'Cơm': { icon: 'restaurant-outline', color: '#FF6B35' },
+  'Phở & Bún': { icon: 'water-outline', color: '#845EC2' },
+  'Pizza': { icon: 'pizza-outline', color: '#e84118' },
+  'Burger': { icon: 'fast-food-outline', color: '#FFB800' },
+  'Đồ uống': { icon: 'cafe-outline', color: '#4B7BE5' },
+  'Tráng miệng': { icon: 'ice-cream-outline', color: '#FF4B8C' },
+};
+const DEFAULT_ICON = { icon: 'grid-outline', color: '#00C9A7' };
 
 type FoodItem = {
   _id: string;
@@ -44,6 +46,9 @@ type CartItem = {
 export default function IndexScreen() {
   const { isAuthenticated, isLoading, user, isAdmin } = useAuth();
   const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isFoodsLoading, setIsFoodsLoading] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isOrdering, setIsOrdering] = useState(false);
@@ -57,14 +62,26 @@ export default function IndexScreen() {
         router.replace('/(admin)' as any);
       } else {
         loadFoods();
+        loadCategories();
       }
     }
   }, [isAuthenticated, isLoading]);
 
-  const loadFoods = async () => {
+  const loadCategories = async () => {
+    try {
+      const response = await foodAPI.getCategories();
+      if (response.success) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
+
+  const loadFoods = async (category?: string) => {
     try {
       setIsFoodsLoading(true);
-      const response = await foodAPI.getFoods();
+      const response = await foodAPI.getFoods(category || undefined);
       if (response.success) {
         setFoods(response.data);
       }
@@ -73,6 +90,22 @@ export default function IndexScreen() {
     } finally {
       setIsFoodsLoading(false);
     }
+  };
+
+  const handleCategoryPress = (categoryName: string | null) => {
+    setSelectedCategory(categoryName);
+    loadFoods(categoryName || undefined);
+  };
+
+  const ITEMS_PER_CATEGORY = 5;
+
+  const toggleExpandCategory = (cat: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
   };
 
   const handleAddToCart = (food: FoodItem) => {
@@ -117,6 +150,18 @@ export default function IndexScreen() {
       );
     });
   }, [foods, searchQuery]);
+
+  // Group foods by category
+  const groupedFoods = useMemo(() => {
+    const source = searchQuery.trim() ? filteredFoods : foods;
+    const groups: Record<string, FoodItem[]> = {};
+    source.forEach((item) => {
+      const cat = item.category || 'Khác';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item);
+    });
+    return groups;
+  }, [foods, filteredFoods, searchQuery]);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
@@ -182,7 +227,7 @@ export default function IndexScreen() {
               <Text style={styles.greeting}>Xin chào, 👋</Text>
               <Text style={styles.userName}>{user?.name || 'Bạn'}</Text>
             </View>
-            <TouchableOpacity style={styles.notificationBtn}>
+            <TouchableOpacity style={styles.notificationBtn} onPress={() => router.push('/(tabs)/notifications')}>
               <Ionicons name="notifications-outline" size={24} color="#FFF" />
               <View style={styles.notificationBadge} />
             </TouchableOpacity>
@@ -236,59 +281,118 @@ export default function IndexScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesContainer}
           >
-            {categories.map((category) => (
-              <TouchableOpacity key={category.id} style={styles.categoryCard}>
-                <View style={[styles.categoryIcon, { backgroundColor: `${category.color}20` }]}>
-                  <Ionicons name={category.icon as any} size={28} color={category.color} />
-                </View>
-                <Text style={styles.categoryName}>{category.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {/* Nút Tất cả */}
+            <TouchableOpacity
+              style={[
+                styles.categoryCard,
+                selectedCategory === null && styles.categoryCardActive,
+              ]}
+              onPress={() => handleCategoryPress(null)}
+            >
+              <View style={[styles.categoryIcon, { backgroundColor: selectedCategory === null ? '#FF6B3530' : 'rgba(255,255,255,0.1)' }]}>
+                <Ionicons name="grid-outline" size={28} color={selectedCategory === null ? '#FF6B35' : '#888'} />
+              </View>
+              <Text style={[styles.categoryName, selectedCategory === null && styles.categoryNameActive]}>Tất cả</Text>
+            </TouchableOpacity>
+
+            {categories.map((cat) => {
+              const iconData = CATEGORY_ICONS[cat.name] || DEFAULT_ICON;
+              const isActive = selectedCategory === cat.name;
+              return (
+                <TouchableOpacity
+                  key={cat.name}
+                  style={[
+                    styles.categoryCard,
+                    isActive && styles.categoryCardActive,
+                  ]}
+                  onPress={() => handleCategoryPress(cat.name)}
+                >
+                  <View style={[styles.categoryIcon, { backgroundColor: isActive ? `${iconData.color}30` : 'rgba(255,255,255,0.1)' }]}>
+                    <Ionicons name={iconData.icon as any} size={28} color={isActive ? iconData.color : '#888'} />
+                  </View>
+                  <Text style={[styles.categoryName, isActive && styles.categoryNameActive]}>{cat.name}</Text>
+                  <Text style={styles.categoryCount}>{cat.count}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
 
-          {/* Featured Items / Food List */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Món nổi bật</Text>
-            <TouchableOpacity onPress={loadFoods}>
-              <Text style={styles.seeAll}>Làm mới</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Food List - grouped by category */}
+          {isFoodsLoading ? (
+            <View style={styles.foodLoadingContainer}>
+              <ActivityIndicator size="small" color="#FF6B35" />
+              <Text style={styles.foodLoadingText}>Đang tải món ăn...</Text>
+            </View>
+          ) : foods.length === 0 ? (
+            <Text style={styles.emptyFoodText}>Chưa có món ăn nào.</Text>
+          ) : (
+            Object.entries(groupedFoods).map(([categoryName, items]) => {
+              const iconData = CATEGORY_ICONS[categoryName] || DEFAULT_ICON;
+              const isExpanded = expandedCategories.has(categoryName);
+              const displayItems = isExpanded ? items : items.slice(0, ITEMS_PER_CATEGORY);
+              const hasMore = items.length > ITEMS_PER_CATEGORY;
 
-          <View style={styles.featuredContainer}>
-            {isFoodsLoading ? (
-              <View style={styles.foodLoadingContainer}>
-                <ActivityIndicator size="small" color="#FF6B35" />
-                <Text style={styles.foodLoadingText}>Đang tải món ăn...</Text>
-              </View>
-            ) : foods.length === 0 ? (
-              <Text style={styles.emptyFoodText}>Chưa có món ăn nào. Hãy seed dữ liệu từ backend.</Text>
-            ) : (
-              filteredFoods.map((item) => (
-                <View key={item._id} style={styles.featuredCard}>
-                  <View style={styles.featuredImageContainer}>
-                    <Text style={styles.featuredEmoji}>{item.image || '🍽️'}</Text>
-                  </View>
-                  <View style={styles.featuredInfo}>
-                    <Text style={styles.featuredName}>{item.name}</Text>
-                    {item.description ? (
-                      <Text style={styles.featuredDescription} numberOfLines={2}>
-                        {item.description}
-                      </Text>
-                    ) : null}
-                    <View style={styles.featuredMeta}>
-                      <Text style={styles.featuredPrice}>{formatCurrency(item.price)}</Text>
+              return (
+                <View key={categoryName} style={styles.categorySection}>
+                  {/* Category header */}
+                  <View style={styles.categorySectionHeader}>
+                    <View style={styles.categorySectionLeft}>
+                      <View style={[styles.categorySectionIcon, { backgroundColor: `${iconData.color}25` }]}>
+                        <Ionicons name={iconData.icon as any} size={20} color={iconData.color} />
+                      </View>
+                      <Text style={styles.categorySectionTitle}>{categoryName}</Text>
+                      <View style={[styles.categorySectionBadge, { backgroundColor: `${iconData.color}25` }]}>
+                        <Text style={[styles.categorySectionBadgeText, { color: iconData.color }]}>{items.length}</Text>
+                      </View>
                     </View>
                   </View>
-                  <TouchableOpacity
-                    style={styles.addBtn}
-                    onPress={() => handleAddToCart(item)}
-                  >
-                    <Ionicons name="add" size={20} color="#FFF" />
-                  </TouchableOpacity>
+
+                  {/* Food items */}
+                  {displayItems.map((item) => (
+                    <View key={item._id} style={styles.featuredCard}>
+                      <View style={styles.featuredImageContainer}>
+                        <Text style={styles.featuredEmoji}>{item.image || '🍽️'}</Text>
+                      </View>
+                      <View style={styles.featuredInfo}>
+                        <Text style={styles.featuredName}>{item.name}</Text>
+                        {item.description ? (
+                          <Text style={styles.featuredDescription} numberOfLines={2}>
+                            {item.description}
+                          </Text>
+                        ) : null}
+                        <View style={styles.featuredMeta}>
+                          <Text style={styles.featuredPrice}>{formatCurrency(item.price)}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.addBtn}
+                        onPress={() => handleAddToCart(item)}
+                      >
+                        <Ionicons name="add" size={20} color="#FFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  {/* Show more / less button */}
+                  {hasMore && (
+                    <TouchableOpacity
+                      style={styles.showMoreBtn}
+                      onPress={() => toggleExpandCategory(categoryName)}
+                    >
+                      <Text style={styles.showMoreText}>
+                        {isExpanded ? 'Thu gọn' : `Xem thêm ${items.length - ITEMS_PER_CATEGORY} món`}
+                      </Text>
+                      <Ionicons
+                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color="#FF6B35"
+                      />
+                    </TouchableOpacity>
+                  )}
                 </View>
-              ))
-            )}
-          </View>
+              );
+            })
+          )}
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
@@ -529,8 +633,71 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.5)',
     fontWeight: '500',
+  },
+  categoryCardActive: {
+    transform: [{ scale: 1.05 }],
+  },
+  categoryNameActive: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  categoryCount: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: 2,
+  },
+  categorySection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  categorySectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categorySectionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  categorySectionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categorySectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  categorySectionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  categorySectionBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  showMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    gap: 6,
+  },
+  showMoreText: {
+    fontSize: 14,
+    color: '#FF6B35',
+    fontWeight: '600',
   },
   featuredContainer: {
     paddingHorizontal: 24,
