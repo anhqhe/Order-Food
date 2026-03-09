@@ -1,13 +1,13 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI, tokenStorage } from '../services/api';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { authAPI, tokenStorage } from "../services/api";
 
 interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
-  role: 'user' | 'admin';
+  role: "user" | "admin";
 }
 
 interface AuthContextType {
@@ -17,13 +17,20 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (name: string, email: string, phone: string, password: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    phone: string,
+    password: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,14 +43,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadStoredAuth = async () => {
     try {
       const storedToken = await tokenStorage.getToken();
-      const storedUser = await AsyncStorage.getItem('userData');
+      const storedUser = await AsyncStorage.getItem("userData");
 
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error('Error loading auth data:', error);
+      console.error("Error loading auth data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -52,44 +59,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login({ email, password });
-      
+
       if (response.success) {
         const { user, token } = response.data;
-        
+
         // Store token and user data
         await tokenStorage.setToken(token);
-        await AsyncStorage.setItem('userData', JSON.stringify(user));
-        
+        await AsyncStorage.setItem("userData", JSON.stringify(user));
+
         setToken(token);
         setUser(user);
         return user;
       } else {
-        throw new Error(response.message || 'Đăng nhập thất bại');
+        throw new Error(response.message || "Đăng nhập thất bại");
       }
     } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Đăng nhập thất bại';
+      const message =
+        error.response?.data?.message || error.message || "Đăng nhập thất bại";
       throw new Error(message);
     }
   };
 
-  const register = async (name: string, email: string, phone: string, password: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    phone: string,
+    password: string,
+  ) => {
     try {
       const response = await authAPI.register({ name, email, phone, password });
-      
+
       if (response.success) {
         const { user, token } = response.data;
-        
+
         // Store token and user data
         await tokenStorage.setToken(token);
-        await AsyncStorage.setItem('userData', JSON.stringify(user));
-        
+        await AsyncStorage.setItem("userData", JSON.stringify(user));
+
         setToken(token);
         setUser(user);
       } else {
-        throw new Error(response.message || 'Đăng ký thất bại');
+        throw new Error(response.message || "Đăng ký thất bại");
       }
     } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Đăng ký thất bại';
+      const message =
+        error.response?.data?.message || error.message || "Đăng ký thất bại";
       throw new Error(message);
     }
   };
@@ -98,12 +112,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Clear stored data
       await tokenStorage.removeToken();
-      await AsyncStorage.removeItem('userData');
-      
+      await AsyncStorage.removeItem("userData");
+
       setToken(null);
       setUser(null);
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error("Error logging out:", error);
     }
   };
 
@@ -112,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     token,
     isLoading,
     isAuthenticated: !!token && !!user,
-    isAdmin: !!user && user.role === 'admin',
+    isAdmin: !!user && user.role === "admin",
     login,
     register,
     logout,
@@ -124,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

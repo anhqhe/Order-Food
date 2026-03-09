@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,9 +10,9 @@ import {
   RefreshControl,
   StatusBar,
   Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { adminAPI } from '@/services/api';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { adminAPI } from "@/services/api";
 
 interface OrderItem {
   food: any;
@@ -37,15 +37,36 @@ interface Order {
   createdAt: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  pending: { label: 'Chờ xác nhận', color: '#FFA502', icon: 'time-outline' },
-  confirmed: { label: 'Đã xác nhận', color: '#3742fa', icon: 'checkmark-circle-outline' },
-  delivering: { label: 'Đang giao', color: '#1e90ff', icon: 'bicycle-outline' },
-  completed: { label: 'Hoàn thành', color: '#2ed573', icon: 'checkmark-done-circle-outline' },
-  cancelled: { label: 'Đã hủy', color: '#ff4757', icon: 'close-circle-outline' },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: string }
+> = {
+  pending: { label: "Chờ xác nhận", color: "#FFA502", icon: "time-outline" },
+  confirmed: {
+    label: "Đã xác nhận",
+    color: "#3742fa",
+    icon: "checkmark-circle-outline",
+  },
+  delivering: { label: "Đang giao", color: "#1e90ff", icon: "bicycle-outline" },
+  completed: {
+    label: "Hoàn thành",
+    color: "#2ed573",
+    icon: "checkmark-done-circle-outline",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    color: "#ff4757",
+    icon: "close-circle-outline",
+  },
 };
 
-const STATUS_FLOW = ['pending', 'confirmed', 'delivering', 'completed', 'cancelled'];
+const STATUS_FLOW = [
+  "pending",
+  "confirmed",
+  "delivering",
+  "completed",
+  "cancelled",
+];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -62,7 +83,7 @@ export default function AdminOrders() {
         setOrders(response.data);
       }
     } catch (error) {
-      console.error('Load orders error:', error);
+      console.error("Load orders error:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -83,10 +104,10 @@ export default function AdminOrders() {
       await adminAPI.updateOrderStatus(orderId, newStatus);
       setStatusModalVisible(false);
       setSelectedOrder(null);
-      Alert.alert('Thành công', 'Cập nhật trạng thái thành công');
+      Alert.alert("Thành công", "Cập nhật trạng thái thành công");
       loadOrders();
     } catch (error: any) {
-      Alert.alert('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra');
+      Alert.alert("Lỗi", error.response?.data?.message || "Có lỗi xảy ra");
     }
   };
 
@@ -96,20 +117,20 @@ export default function AdminOrders() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(value);
   };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -134,18 +155,31 @@ export default function AdminOrders() {
         {/* Order Header */}
         <View style={styles.orderHeader}>
           <View>
-            <Text style={styles.orderId}>#{item._id.slice(-6).toUpperCase()}</Text>
+            <Text style={styles.orderId}>
+              #{item._id.slice(-6).toUpperCase()}
+            </Text>
             <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
           </View>
           <TouchableOpacity
-            style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusConfig.color + "20" },
+            ]}
             onPress={() => openStatusModal(item)}
           >
-            <Ionicons name={statusConfig.icon as any} size={14} color={statusConfig.color} />
+            <Ionicons
+              name={statusConfig.icon as any}
+              size={14}
+              color={statusConfig.color}
+            />
             <Text style={[styles.statusText, { color: statusConfig.color }]}>
               {statusConfig.label}
             </Text>
-            <Ionicons name="chevron-down" size={12} color={statusConfig.color} />
+            <Ionicons
+              name="chevron-down"
+              size={12}
+              color={statusConfig.color}
+            />
           </TouchableOpacity>
         </View>
 
@@ -153,7 +187,7 @@ export default function AdminOrders() {
         <View style={styles.customerInfo}>
           <Ionicons name="person-outline" size={14} color="#888" />
           <Text style={styles.customerText}>
-            {item.user?.name || 'N/A'} • {item.user?.phone || 'N/A'}
+            {item.user?.name || "N/A"} • {item.user?.phone || "N/A"}
           </Text>
         </View>
 
@@ -174,19 +208,25 @@ export default function AdminOrders() {
         {/* Address & Note */}
         <View style={styles.addressRow}>
           <Ionicons name="location-outline" size={14} color="#888" />
-          <Text style={styles.addressText} numberOfLines={1}>{item.address}</Text>
+          <Text style={styles.addressText} numberOfLines={1}>
+            {item.address}
+          </Text>
         </View>
         {item.note ? (
           <View style={styles.addressRow}>
             <Ionicons name="chatbubble-outline" size={14} color="#888" />
-            <Text style={styles.addressText} numberOfLines={1}>{item.note}</Text>
+            <Text style={styles.addressText} numberOfLines={1}>
+              {item.note}
+            </Text>
           </View>
         ) : null}
 
         {/* Total */}
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Tổng cộng</Text>
-          <Text style={styles.totalValue}>{formatCurrency(item.totalPrice)}</Text>
+          <Text style={styles.totalValue}>
+            {formatCurrency(item.totalPrice)}
+          </Text>
         </View>
       </View>
     );
@@ -199,7 +239,13 @@ export default function AdminOrders() {
       {/* Filter Bar */}
       <FlatList
         horizontal
-        data={[{ key: 'all', label: 'Tất cả' }, ...STATUS_FLOW.map((s) => ({ key: s, label: STATUS_CONFIG[s].label }))]}
+        data={[
+          { key: "all", label: "Tất cả" },
+          ...STATUS_FLOW.map((s) => ({
+            key: s,
+            label: STATUS_CONFIG[s].label,
+          })),
+        ]}
         keyExtractor={(item) => item.key}
         showsHorizontalScrollIndicator={false}
         style={styles.filterBar}
@@ -208,16 +254,20 @@ export default function AdminOrders() {
           <TouchableOpacity
             style={[
               styles.filterChip,
-              (item.key === 'all' ? filterStatus === null : filterStatus === item.key) &&
-                styles.filterChipActive,
+              (item.key === "all"
+                ? filterStatus === null
+                : filterStatus === item.key) && styles.filterChipActive,
             ]}
-            onPress={() => setFilterStatus(item.key === 'all' ? null : item.key)}
+            onPress={() =>
+              setFilterStatus(item.key === "all" ? null : item.key)
+            }
           >
             <Text
               style={[
                 styles.filterChipText,
-                (item.key === 'all' ? filterStatus === null : filterStatus === item.key) &&
-                  styles.filterChipTextActive,
+                (item.key === "all"
+                  ? filterStatus === null
+                  : filterStatus === item.key) && styles.filterChipTextActive,
               ]}
             >
               {item.label}
@@ -236,7 +286,11 @@ export default function AdminOrders() {
         renderItem={renderOrderItem}
         contentContainerStyle={styles.listContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF6B6B"
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -276,9 +330,14 @@ export default function AdminOrders() {
                       key={status}
                       style={[
                         styles.statusOption,
-                        isActive && { borderColor: config.color, borderWidth: 2 },
+                        isActive && {
+                          borderColor: config.color,
+                          borderWidth: 2,
+                        },
                       ]}
-                      onPress={() => handleUpdateStatus(selectedOrder._id, status)}
+                      onPress={() =>
+                        handleUpdateStatus(selectedOrder._id, status)
+                      }
                     >
                       <View style={styles.statusOptionLeft}>
                         <Ionicons
@@ -286,12 +345,21 @@ export default function AdminOrders() {
                           size={22}
                           color={config.color}
                         />
-                        <Text style={[styles.statusOptionText, { color: config.color }]}>
+                        <Text
+                          style={[
+                            styles.statusOptionText,
+                            { color: config.color },
+                          ]}
+                        >
                           {config.label}
                         </Text>
                       </View>
                       {isActive && (
-                        <Ionicons name="checkmark-circle" size={22} color={config.color} />
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={22}
+                          color={config.color}
+                        />
                       )}
                     </TouchableOpacity>
                   );
@@ -308,16 +376,16 @@ export default function AdminOrders() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: "#0f0f23",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0f0f23',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0f0f23",
   },
   loadingText: {
-    color: '#aaa',
+    color: "#aaa",
     marginTop: 12,
     fontSize: 16,
   },
@@ -333,25 +401,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: "#1a1a2e",
     borderWidth: 1,
-    borderColor: '#2a2a4a',
+    borderColor: "#2a2a4a",
     marginRight: 8,
   },
   filterChipActive: {
-    backgroundColor: 'rgba(255,107,107,0.15)',
-    borderColor: '#FF6B6B',
+    backgroundColor: "rgba(255,107,107,0.15)",
+    borderColor: "#FF6B6B",
   },
   filterChipText: {
-    color: '#888',
+    color: "#888",
     fontSize: 13,
   },
   filterChipTextActive: {
-    color: '#FF6B6B',
-    fontWeight: '600',
+    color: "#FF6B6B",
+    fontWeight: "600",
   },
   orderCount: {
-    color: '#888',
+    color: "#888",
     fontSize: 14,
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -361,30 +429,30 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   orderCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: "#1a1a2e",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
   },
   orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   orderId: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   orderDate: {
     fontSize: 12,
-    color: '#888',
+    color: "#888",
     marginTop: 2,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
@@ -392,126 +460,126 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   customerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: 10,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a4a',
+    borderBottomColor: "#2a2a4a",
   },
   customerText: {
     fontSize: 13,
-    color: '#aaa',
+    color: "#aaa",
   },
   itemsList: {
     gap: 6,
     marginBottom: 10,
   },
   orderItemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   orderItemName: {
     fontSize: 14,
-    color: '#ddd',
+    color: "#ddd",
   },
   orderItemPrice: {
     fontSize: 14,
-    color: '#4facfe',
+    color: "#4facfe",
   },
   addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginTop: 6,
   },
   addressText: {
     fontSize: 13,
-    color: '#888',
+    color: "#888",
     flex: 1,
   },
   totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#2a2a4a',
+    borderTopColor: "#2a2a4a",
   },
   totalLabel: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#aaa',
+    fontWeight: "600",
+    color: "#aaa",
   },
   totalValue: {
     fontSize: 17,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
+    fontWeight: "bold",
+    color: "#FF6B6B",
   },
   emptyContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 60,
   },
   emptyText: {
-    color: '#666',
+    color: "#666",
     fontSize: 16,
     marginTop: 12,
   },
   // Modal
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modalContent: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: "#1a1a2e",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 40,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a4a',
+    borderBottomColor: "#2a2a4a",
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   modalBody: {
     padding: 20,
   },
   modalOrderId: {
     fontSize: 15,
-    color: '#aaa',
+    color: "#aaa",
     marginBottom: 16,
   },
   statusOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#0f0f23',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#0f0f23",
     borderRadius: 14,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#2a2a4a',
+    borderColor: "#2a2a4a",
   },
   statusOptionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   statusOptionText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
