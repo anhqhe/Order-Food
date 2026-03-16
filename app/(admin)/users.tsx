@@ -18,6 +18,7 @@ interface UserItem {
   email: string;
   phone: string;
   role: "user" | "admin";
+  isBanned?: boolean;
   createdAt?: string;
 }
 
@@ -74,34 +75,38 @@ export default function AdminUsersScreen() {
     return date.toLocaleDateString("vi-VN");
   };
 
-  const confirmDelete = (user: UserItem) => {
+  const confirmToggleBan = (user: UserItem) => {
+    const action = user.isBanned ? "mở khóa" : "khóa";
     Alert.alert(
-      "Xóa người dùng",
-      `Bạn có chắc muốn xóa "${user.name || user.email}"?`,
+      user.isBanned ? "Mở khóa người dùng" : "Khóa người dùng",
+      `Bạn có chắc muốn ${action} "${user.name || user.email}"?`,
       [
         { text: "Hủy", style: "cancel" },
         {
-          text: "Xóa",
-          style: "destructive",
-          onPress: () => handleDelete(user),
+          text: user.isBanned ? "Mở khóa" : "Khóa",
+          style: user.isBanned ? "default" : "destructive",
+          onPress: () => handleToggleBan(user),
         },
       ],
     );
   };
 
-  const handleDelete = async (user: UserItem) => {
+  const handleToggleBan = async (user: UserItem) => {
     setWorkingId(user._id);
     try {
-      const response = await adminAPI.deleteUser(user._id);
+      const response = await adminAPI.banUser(user._id);
       if (response.success) {
-        setUsers((prev) => prev.filter((u) => u._id !== user._id));
+        loadUsers({ silent: true });
+        Alert.alert("Thành công", response.message);
       } else {
-        Alert.alert("Lỗi", response.message || "Không thể xóa người dùng");
+        Alert.alert("Lỗi", response.message || "Không thể thay đổi trạng thái");
       }
     } catch (error: any) {
       Alert.alert(
         "Lỗi",
-        error?.response?.data?.message || error.message || "Không thể xóa người dùng",
+        error?.response?.data?.message ||
+          error.message ||
+          "Không thể thay đổi trạng thái",
       );
     } finally {
       setWorkingId(null);
@@ -110,6 +115,7 @@ export default function AdminUsersScreen() {
 
   const renderUserItem = ({ item }: { item: UserItem }) => {
     const isAdmin = item.role === "admin";
+    const isBanned = !!item.isBanned;
     const busy = workingId === item._id;
 
     return (
@@ -126,16 +132,30 @@ export default function AdminUsersScreen() {
             <View style={styles.userText}>
               <Text style={styles.userName}>{item.name || "Không tên"}</Text>
               <Text style={styles.userEmail}>{item.email}</Text>
-              {!!item.phone && <Text style={styles.userPhone}>{item.phone}</Text>}
+              {!!item.phone && (
+                <Text style={styles.userPhone}>{item.phone}</Text>
+              )}
             </View>
           </View>
-          <View style={styles.roleBadge(isAdmin)}>
+          <View
+            style={[
+              styles.roleBadge,
+              isBanned ? styles.roleBadgeBanned : isAdmin ? styles.roleBadgeAdmin : styles.roleBadgeUser,
+            ]}
+          >
             <Ionicons
-              name={isAdmin ? "shield-checkmark" : "person-circle-outline"}
+              name={isBanned ? "ban-outline" : isAdmin ? "shield-checkmark" : "person-circle-outline"}
               size={16}
-              color={isAdmin ? "#fff" : "#FF6B6B"}
+              color={isBanned ? "#ff4757" : isAdmin ? "#4CAF50" : "#FF6B6B"}
             />
-            <Text style={styles.roleText(isAdmin)}>{isAdmin ? "Admin" : "User"}</Text>
+            <Text
+              style={[
+                styles.roleText,
+                isBanned ? styles.roleTextBanned : isAdmin ? styles.roleTextAdmin : styles.roleTextUser,
+              ]}
+            >
+              {isBanned ? "Banned" : isAdmin ? "Admin" : "User"}
+            </Text>
           </View>
         </View>
 
@@ -143,14 +163,24 @@ export default function AdminUsersScreen() {
           <Text style={styles.createdText}>
             Tạo ngày: {formatDate(item.createdAt) || "—"}
           </Text>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => confirmDelete(item)}
-            disabled={busy}
-          >
-            <Ionicons name="trash-outline" size={18} color="#ff4757" />
-            <Text style={styles.deleteText}>{busy ? "Đang xóa..." : "Xóa"}</Text>
-          </TouchableOpacity>
+          {!isAdmin && (
+            <TouchableOpacity
+              style={isBanned ? styles.unbanButton : styles.deleteButton}
+              onPress={() => confirmToggleBan(item)}
+              disabled={busy}
+            >
+              <Ionicons
+                name={isBanned ? "checkmark-circle-outline" : "ban-outline"}
+                size={18}
+                color={isBanned ? "#2ed573" : "#ff4757"}
+              />
+              <Text style={isBanned ? styles.unbanText : styles.deleteText}>
+                {busy
+                  ? isBanned ? "Đang mở..." : "Đang khóa..."
+                  : isBanned ? "Mở khóa" : "Khóa"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -183,7 +213,12 @@ export default function AdminUsersScreen() {
               style={[styles.filterChip, active && styles.filterChipActive]}
               onPress={() => setRoleFilter(item.key)}
             >
-              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  active && styles.filterChipTextActive,
+                ]}
+              >
                 {item.label}
               </Text>
             </TouchableOpacity>
@@ -199,7 +234,11 @@ export default function AdminUsersScreen() {
         renderItem={renderUserItem}
         contentContainerStyle={styles.listContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF6B6B"
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -313,22 +352,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#888",
   },
-  roleBadge: (isAdmin: boolean) => ({
+  roleBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: isAdmin ? "rgba(76,175,80,0.15)" : "rgba(255,107,107,0.12)",
     borderWidth: 1,
-    borderColor: isAdmin ? "#4CAF50" : "#FF6B6B",
-  }),
-  roleText: (isAdmin: boolean) => ({
+  },
+  roleBadgeAdmin: {
+    backgroundColor: "rgba(76,175,80,0.15)",
+    borderColor: "#4CAF50",
+  },
+  roleBadgeUser: {
+    backgroundColor: "rgba(255,107,107,0.12)",
+    borderColor: "#FF6B6B",
+  },
+  roleBadgeBanned: {
+    backgroundColor: "rgba(255,71,87,0.15)",
+    borderColor: "#ff4757",
+  },
+  roleText: {
     fontSize: 12,
     fontWeight: "600",
-    color: isAdmin ? "#4CAF50" : "#FF6B6B",
     marginLeft: 4,
-  }),
+  },
+  roleTextAdmin: {
+    color: "#4CAF50",
+  },
+  roleTextUser: {
+    color: "#FF6B6B",
+  },
+  roleTextBanned: {
+    color: "#ff4757",
+  },
   cardFooter: {
     marginTop: 10,
     flexDirection: "row",
@@ -353,6 +410,20 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: "600",
   },
+  unbanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "rgba(46,213,115,0.1)",
+  },
+  unbanText: {
+    fontSize: 12,
+    color: "#2ed573",
+    marginLeft: 4,
+    fontWeight: "600",
+  },
   emptyContainer: {
     alignItems: "center",
     paddingTop: 60,
@@ -363,4 +434,3 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 });
-

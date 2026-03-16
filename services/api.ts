@@ -222,9 +222,9 @@ export const adminAPI = {
     return response.data;
   },
 
-  // Delete user
-  deleteUser: async (id: string) => {
-    const response = await api.delete(`/admin/users/${id}`);
+  // Ban/unban user (toggle trạng thái active/inactive)
+  banUser: async (id: string) => {
+    const response = await api.put(`/admin/users/${id}/ban`);
     return response.data;
   },
 };
