@@ -39,27 +39,6 @@ const menuItems = [
     subtitle: "Quản lý địa chỉ",
     color: "#00C9A7",
   },
-  {
-    id: 4,
-    icon: "card-outline",
-    title: "Phương thức thanh toán",
-    subtitle: "Thẻ và ví điện tử",
-    color: "#4B7BE5",
-  },
-  {
-    id: 5,
-    icon: "gift-outline",
-    title: "Ưu đãi của tôi",
-    subtitle: "Mã giảm giá, voucher",
-    color: "#FFB800",
-  },
-  {
-    id: 6,
-    icon: "settings-outline",
-    title: "Cài đặt",
-    subtitle: "Thông báo, ngôn ngữ",
-    color: "#845EC2",
-  },
 ];
 
 // Stats
@@ -211,6 +190,8 @@ export default function ProfileScreen() {
                     router.push("/orders/history");
                   } else if (item.id === 2) {
                     router.push("/favorites");
+                  } else if (item.id === 3) {
+                    router.push("/addresses");
                   }
                 }}
               >

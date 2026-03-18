@@ -8,11 +8,15 @@ import {
   RefreshControl,
   TouchableOpacity,
   StatusBar,
+  Modal,
+  TextInput,
+  Alert,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { favoriteAPI, orderAPI } from "@/services/api";
+import { favoriteAPI, orderAPI, addressAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface FoodItem {
@@ -37,6 +41,23 @@ export default function FavoritesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [orderModalVisible, setOrderModalVisible] = useState(false);
+  const [orderAddress, setOrderAddress] = useState("");
+  const [orderNote, setOrderNote] = useState("");
+  const [addresses, setAddresses] = useState<
+    { _id: string; fullAddress: string; label?: string; isDefault?: boolean }[]
+  >([]);
+
+  const loadAddresses = useCallback(async () => {
+    try {
+      const response = await addressAPI.getAddresses();
+      if (response.success && Array.isArray(response.data)) {
+        setAddresses(response.data);
+      }
+    } catch (error) {
+      console.error("Load addresses error:", error);
+    }
+  }, []);
 
   const loadFavorites = useCallback(async () => {
     try {
@@ -54,7 +75,8 @@ export default function FavoritesScreen() {
 
   useEffect(() => {
     loadFavorites();
-  }, [loadFavorites]);
+    loadAddresses();
+  }, [loadFavorites, loadAddresses]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -91,7 +113,28 @@ export default function FavoritesScreen() {
     [cart],
   );
 
+  const openOrderModal = async () => {
+    setOrderModalVisible(true);
+    try {
+      const res = await addressAPI.getAddresses();
+      if (res.success && Array.isArray(res.data)) {
+        setAddresses(res.data);
+        const defaultAddr =
+          res.data.find((a: any) => a.isDefault) || res.data[0];
+        setOrderAddress(defaultAddr?.fullAddress || "");
+      }
+    } catch (e) {
+      console.error("Load addresses error:", e);
+    }
+    setOrderNote("");
+  };
+
   const handlePlaceOrder = async () => {
+    const addr = orderAddress.trim();
+    if (!addr) {
+      Alert.alert("Lỗi", "Vui lòng nhập địa chỉ giao hàng");
+      return;
+    }
     if (!cart.length || isOrdering) return;
 
     try {
@@ -101,15 +144,18 @@ export default function FavoritesScreen() {
           foodId: item.food._id,
           quantity: item.quantity,
         })),
-        address: "Địa chỉ giao hàng của " + (user?.name || "khách hàng"),
+        address: addr,
+        note: orderNote.trim() || undefined,
       };
 
       const response = await orderAPI.createOrder(payload);
       if (response.success) {
         setCart([]);
+        setOrderModalVisible(false);
+        router.push("/orders/history");
       }
-    } catch (error) {
-      console.error("Create order from favorites error:", error);
+    } catch (error: any) {
+      Alert.alert("Lỗi", error.response?.data?.message || "Không thể đặt hàng");
     } finally {
       setIsOrdering(false);
     }
@@ -160,10 +206,7 @@ export default function FavoritesScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={22} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Món yêu thích</Text>
@@ -178,7 +221,11 @@ export default function FavoritesScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.listContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B35" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF6B35"
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -204,7 +251,102 @@ export default function FavoritesScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.cartButton, isOrdering && styles.cartButtonDisabled]}
+              style={styles.cartButton}
+              onPress={openOrderModal}
+            >
+              <Ionicons name="bag-check-outline" size={18} color="#FFF" />
+              <Text style={styles.cartButtonText}>Đặt hàng</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+      )}
+
+      <Modal
+        visible={orderModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setOrderModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <ScrollView
+            style={styles.orderModalScroll}
+            contentContainerStyle={styles.orderModalContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.orderModalHeader}>
+              <Text style={styles.orderModalTitle}>Địa chỉ giao hàng</Text>
+              <TouchableOpacity onPress={() => setOrderModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#888" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.savedAddresses}>
+              <Text style={styles.savedLabel}>Chọn địa chỉ đã lưu</Text>
+              {addresses.length > 0 ? (
+                addresses.map((addr) => (
+                  <TouchableOpacity
+                    key={addr._id}
+                    style={[
+                      styles.addressChip,
+                      orderAddress === addr.fullAddress &&
+                        styles.addressChipActive,
+                    ]}
+                    onPress={() => setOrderAddress(addr.fullAddress)}
+                  >
+                    <Ionicons
+                      name="location-outline"
+                      size={16}
+                      color={
+                        orderAddress === addr.fullAddress ? "#FF6B35" : "#888"
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.addressChipText,
+                        orderAddress === addr.fullAddress &&
+                          styles.addressChipTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {addr.label || addr.fullAddress}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.noAddressHint}>
+                  Chưa có địa chỉ. Vào mục Địa chỉ giao hàng để thêm, hoặc nhập
+                  bên dưới.
+                </Text>
+              )}
+            </View>
+
+            <Text style={styles.inputLabel}>Địa chỉ giao hàng *</Text>
+            <TextInput
+              style={[styles.modalInput, styles.modalInputMultiline]}
+              placeholder="Số nhà, đường, phường, quận..."
+              placeholderTextColor="#666"
+              value={orderAddress}
+              onChangeText={setOrderAddress}
+              multiline
+              numberOfLines={3}
+            />
+
+            <Text style={styles.inputLabel}>Ghi chú (tùy chọn)</Text>
+            <TextInput
+              style={[styles.modalInput, styles.modalInputMultiline]}
+              placeholder="Ghi chú cho đơn hàng..."
+              placeholderTextColor="#666"
+              value={orderNote}
+              onChangeText={setOrderNote}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.confirmOrderBtn,
+                isOrdering && styles.confirmOrderBtnDisabled,
+              ]}
               onPress={handlePlaceOrder}
               disabled={isOrdering}
             >
@@ -212,14 +354,16 @@ export default function FavoritesScreen() {
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <>
-                  <Ionicons name="bag-check-outline" size={18} color="#FFF" />
-                  <Text style={styles.cartButtonText}>Đặt hàng</Text>
+                  <Ionicons name="bag-check-outline" size={20} color="#FFF" />
+                  <Text style={styles.confirmOrderBtnText}>
+                    Xác nhận đặt hàng
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
-          </LinearGradient>
+          </ScrollView>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }
@@ -395,5 +539,107 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFF",
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  orderModalScroll: {
+    maxHeight: "85%",
+  },
+  orderModalContent: {
+    backgroundColor: "#1a1a2e",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  orderModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  orderModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  savedAddresses: {
+    marginBottom: 16,
+  },
+  savedLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#aaa",
+    marginBottom: 10,
+  },
+  noAddressHint: {
+    fontSize: 13,
+    color: "#666",
+    fontStyle: "italic",
+    marginBottom: 8,
+  },
+  addressChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#0f0f23",
+    borderWidth: 1,
+    borderColor: "#2a2a4a",
+    marginBottom: 8,
+  },
+  addressChipActive: {
+    borderColor: "#FF6B35",
+    backgroundColor: "rgba(255,107,53,0.1)",
+  },
+  addressChipText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#aaa",
+  },
+  addressChipTextActive: {
+    color: "#FF6B35",
+    fontWeight: "600",
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#aaa",
+    marginBottom: 8,
+  },
+  modalInput: {
+    backgroundColor: "#0f0f23",
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: "#FFF",
+    borderWidth: 1,
+    borderColor: "#2a2a4a",
+    marginBottom: 16,
+  },
+  modalInputMultiline: {
+    minHeight: 70,
+    textAlignVertical: "top",
+  },
+  confirmOrderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FF6B35",
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    marginTop: 8,
+  },
+  confirmOrderBtnDisabled: {
+    opacity: 0.7,
+  },
+  confirmOrderBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFF",
+  },
 });
-

@@ -7,6 +7,7 @@ import {
   ScrollView,
   StatusBar,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -31,34 +32,81 @@ interface Order {
 const STATUS_LABELS: Record<string, string> = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
-  delivering: "Đang giao",
-  completed: "Hoàn thành",
+  // Fallback cho dữ liệu cũ trong DB
+  delivering: "Đã xác nhận",
+  completed: "Đã xác nhận",
   cancelled: "Đã hủy",
 };
+
+const CANCEL_WINDOW_MINUTES = 2;
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+
+  const fetchDetail = async () => {
+    try {
+      if (!id) return;
+      const response = await orderAPI.getOrderDetail(id);
+      if (response.success) {
+        setOrder(response.data);
+      }
+    } catch (error) {
+      console.error("Load order detail error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        if (!id) return;
-        const response = await orderAPI.getOrderDetail(id);
-        if (response.success) {
-          setOrder(response.data);
-        }
-      } catch (error) {
-        console.error("Load order detail error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDetail();
   }, [id]);
+
+  const getCancelInfo = () => {
+    if (!order || order.status !== "pending") return { canCancel: false, remainingSeconds: 0 };
+    const createdAt = new Date(order.createdAt).getTime();
+    const now = Date.now();
+    const elapsedSeconds = (now - createdAt) / 1000;
+    const windowSeconds = CANCEL_WINDOW_MINUTES * 60;
+    const remainingSeconds = Math.max(0, Math.floor(windowSeconds - elapsedSeconds));
+    return { canCancel: remainingSeconds > 0, remainingSeconds };
+  };
+
+  const canCancel = () => getCancelInfo().canCancel;
+
+  const handleCancelOrder = () => {
+    if (!id || !canCancel()) return;
+    Alert.alert(
+      "Xác nhận hủy đơn",
+      "Bạn có chắc muốn hủy đơn hàng này?",
+      [
+        { text: "Không", style: "cancel" },
+        {
+          text: "Hủy đơn",
+          style: "destructive",
+          onPress: async () => {
+            setCancelling(true);
+            try {
+              const response = await orderAPI.cancelOrder(id);
+              if (response.success) {
+                setOrder(response.data);
+              }
+            } catch (error: any) {
+              Alert.alert(
+                "Lỗi",
+                error.response?.data?.message || "Không thể hủy đơn hàng"
+              );
+            } finally {
+              setCancelling(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("vi-VN", {
@@ -130,6 +178,23 @@ export default function OrderDetailScreen() {
             <Text style={styles.statusLabel}>{statusLabel}</Text>
           </View>
           <Text style={styles.sectionSubText}>{formatDate(order.createdAt)}</Text>
+          {canCancel() && (
+            <>
+              <Text style={styles.cancelHint}>
+                Còn {Math.floor(getCancelInfo().remainingSeconds / 60)} phút {getCancelInfo().remainingSeconds % 60} giây để hủy đơn
+              </Text>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={handleCancelOrder}
+                disabled={cancelling}
+              >
+                <Ionicons name="close-circle-outline" size={18} color="#ff4757" />
+                <Text style={styles.cancelBtnText}>
+                  {cancelling ? "Đang xử lý..." : "Hủy đơn hàng"}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Items */}
@@ -260,6 +325,28 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 14,
     color: "#FF6B35",
+    fontWeight: "600",
+  },
+  cancelHint: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 8,
+  },
+  cancelBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,71,87,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,71,87,0.4)",
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    color: "#ff4757",
     fontWeight: "600",
   },
   itemRow: {

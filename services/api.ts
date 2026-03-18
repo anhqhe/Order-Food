@@ -145,6 +145,49 @@ export const orderAPI = {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
+
+  // Cancel order (within 2 minutes, pending only)
+  cancelOrder: async (id: string) => {
+    const response = await api.post(`/orders/${id}/cancel`);
+    return response.data;
+  },
+};
+
+// Address API
+export const addressAPI = {
+  getAddresses: async () => {
+    const response = await api.get("/addresses");
+    return response.data;
+  },
+  createAddress: async (data: {
+    label?: string;
+    fullAddress: string;
+    phone?: string;
+    isDefault?: boolean;
+  }) => {
+    const response = await api.post("/addresses", data);
+    return response.data;
+  },
+  updateAddress: async (
+    id: string,
+    data: {
+      label?: string;
+      fullAddress?: string;
+      phone?: string;
+      isDefault?: boolean;
+    },
+  ) => {
+    const response = await api.put(`/addresses/${id}`, data);
+    return response.data;
+  },
+  deleteAddress: async (id: string) => {
+    const response = await api.delete(`/addresses/${id}`);
+    return response.data;
+  },
+  setDefault: async (id: string) => {
+    const response = await api.put(`/addresses/${id}/default`);
+    return response.data;
+  },
 };
 
 // Admin API functions

@@ -31,8 +31,9 @@ interface Order {
 const STATUS_LABELS: Record<string, string> = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
-  delivering: "Đang giao",
-  completed: "Hoàn thành",
+  // Fallback cho dữ liệu cũ trong DB
+  delivering: "Đã xác nhận",
+  completed: "Đã xác nhận",
   cancelled: "Đã hủy",
 };
 
@@ -85,7 +86,7 @@ export default function OrdersHistoryScreen() {
 
   const renderOrderItem = ({ item }: { item: Order }) => {
     const label = STATUS_LABELS[item.status] || item.status;
-    const isCompleted = item.status === "completed";
+    const isConfirmed = ["confirmed", "delivering", "completed"].includes(item.status);
     const isCancelled = item.status === "cancelled";
 
     return (
@@ -101,14 +102,14 @@ export default function OrdersHistoryScreen() {
           <View
             style={[
               styles.statusBadge,
-              isCompleted && { backgroundColor: "rgba(46,213,115,0.2)" },
+              isConfirmed && { backgroundColor: "rgba(55,66,250,0.2)" },
               isCancelled && { backgroundColor: "rgba(255,71,87,0.2)" },
             ]}
           >
             <Text
               style={[
                 styles.statusText,
-                isCompleted && { color: "#2ed573" },
+                isConfirmed && { color: "#3742fa" },
                 isCancelled && { color: "#ff4757" },
               ]}
             >

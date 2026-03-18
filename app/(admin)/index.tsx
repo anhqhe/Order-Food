@@ -24,8 +24,6 @@ interface Stats {
   ordersByStatus: {
     pending: number;
     confirmed: number;
-    delivering: number;
-    completed: number;
     cancelled: number;
   };
 }
@@ -105,8 +103,6 @@ export default function AdminDashboard() {
   const statusItems = [
     { label: 'Chờ xác nhận', value: stats?.ordersByStatus.pending || 0, color: '#FFA502' },
     { label: 'Đã xác nhận', value: stats?.ordersByStatus.confirmed || 0, color: '#3742fa' },
-    { label: 'Đang giao', value: stats?.ordersByStatus.delivering || 0, color: '#1e90ff' },
-    { label: 'Hoàn thành', value: stats?.ordersByStatus.completed || 0, color: '#2ed573' },
     { label: 'Đã hủy', value: stats?.ordersByStatus.cancelled || 0, color: '#ff4757' },
   ];
 

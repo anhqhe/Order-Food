@@ -96,7 +96,13 @@ export default function AdminUsersScreen() {
     try {
       const response = await adminAPI.banUser(user._id);
       if (response.success) {
-        loadUsers({ silent: true });
+        // Cập nhật ngay UI (optimistic update) để hiện Mở khóa / Khóa đúng
+        const newBanned = !user.isBanned;
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === user._id ? { ...u, isBanned: newBanned } : u
+          )
+        );
         Alert.alert("Thành công", response.message);
       } else {
         Alert.alert("Lỗi", response.message || "Không thể thay đổi trạng thái");

@@ -47,26 +47,13 @@ const STATUS_CONFIG: Record<
     color: "#3742fa",
     icon: "checkmark-circle-outline",
   },
-  delivering: { label: "Đang giao", color: "#1e90ff", icon: "bicycle-outline" },
-  completed: {
-    label: "Hoàn thành",
-    color: "#2ed573",
-    icon: "checkmark-done-circle-outline",
-  },
-  cancelled: {
-    label: "Đã hủy",
-    color: "#ff4757",
-    icon: "close-circle-outline",
-  },
+  // Fallback cho dữ liệu cũ trong DB
+  delivering: { label: "Đã xác nhận", color: "#3742fa", icon: "checkmark-circle-outline" },
+  completed: { label: "Đã xác nhận", color: "#3742fa", icon: "checkmark-circle-outline" },
+  cancelled: { label: "Đã hủy", color: "#ff4757", icon: "close-circle-outline" },
 };
 
-const STATUS_FLOW = [
-  "pending",
-  "confirmed",
-  "delivering",
-  "completed",
-  "cancelled",
-];
+const STATUS_FLOW = ["pending", "confirmed", "cancelled"];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
