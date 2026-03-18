@@ -47,13 +47,12 @@ const STATUS_CONFIG: Record<
     color: "#3742fa",
     icon: "checkmark-circle-outline",
   },
-  // Fallback cho dữ liệu cũ trong DB
-  delivering: { label: "Đã xác nhận", color: "#3742fa", icon: "checkmark-circle-outline" },
-  completed: { label: "Đã xác nhận", color: "#3742fa", icon: "checkmark-circle-outline" },
+  delivering: { label: "Chờ giao hàng", color: "#2ed573", icon: "bicycle-outline" },
+  completed: { label: "Hoàn thành", color: "#4CAF50", icon: "checkmark-done-outline" },
   cancelled: { label: "Đã hủy", color: "#ff4757", icon: "close-circle-outline" },
 };
 
-const STATUS_FLOW = ["pending", "confirmed", "cancelled"];
+const STATUS_FLOW = ["pending", "confirmed", "delivering", "completed", "cancelled"];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -377,21 +376,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   filterBar: {
-    maxHeight: 50,
+    minHeight: 44,
   },
   filterBarContent: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 8,
+    alignItems: "center",
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: "#1a1a2e",
     borderWidth: 1,
     borderColor: "#2a2a4a",
     marginRight: 8,
+    justifyContent: "center",
+    minHeight: 40,
   },
   filterChipActive: {
     backgroundColor: "rgba(255,107,107,0.15)",
@@ -399,11 +401,13 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     color: "#888",
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 20,
   },
   filterChipTextActive: {
     color: "#FF6B6B",
     fontWeight: "600",
+    lineHeight: 20,
   },
   orderCount: {
     color: "#888",

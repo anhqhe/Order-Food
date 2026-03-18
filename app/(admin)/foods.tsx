@@ -42,19 +42,31 @@ const emptyForm: FoodFormData = {
   description: '',
   price: '',
   image: '🍽️',
-  category: '',
+  category: 'Khác',
 };
 
 const EMOJI_OPTIONS = ['🍕', '🍔', '🍣', '🍜', '🍝', '🥗', '🌮', '🍗', '🥩', '🍰', '☕', '🥤', '🍽️'];
 
 export default function AdminFoods() {
   const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingFood, setEditingFood] = useState<FoodItem | null>(null);
   const [formData, setFormData] = useState<FoodFormData>(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const response = await adminAPI.getCategories();
+      if (response.success && Array.isArray(response.data)) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Load categories error:', error);
+    }
+  }, []);
 
   const loadFoods = useCallback(async () => {
     try {
@@ -82,6 +94,7 @@ export default function AdminFoods() {
   const openAddModal = () => {
     setEditingFood(null);
     setFormData(emptyForm);
+    loadCategories();
     setModalVisible(true);
   };
 
@@ -92,8 +105,9 @@ export default function AdminFoods() {
       description: food.description || '',
       price: food.price.toString(),
       image: food.image || '🍽️',
-      category: food.category || '',
+      category: food.category || 'Khác',
     });
+    loadCategories();
     setModalVisible(true);
   };
 
@@ -114,7 +128,7 @@ export default function AdminFoods() {
         description: formData.description.trim(),
         price: Number(formData.price),
         image: formData.image,
-        category: formData.category.trim(),
+        category: (formData.category || 'Khác').trim(),
       };
 
       if (editingFood) {
@@ -327,13 +341,40 @@ export default function AdminFoods() {
               />
 
               <Text style={styles.inputLabel}>Danh mục</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.category}
-                onChangeText={(text) => setFormData({ ...formData, category: text })}
-                placeholder="VD: Pizza, Burger, Sushi..."
-                placeholderTextColor="#666"
-              />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoryPicker}
+              >
+                {[
+                  ...new Set([
+                    'Khác',
+                    ...categories.filter(Boolean),
+                    ...(formData.category?.trim() &&
+                    !['Khác', ...categories].includes(formData.category.trim())
+                      ? [formData.category.trim()]
+                      : []),
+                  ]),
+                ].map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryChip,
+                      formData.category === cat && styles.categoryChipSelected,
+                    ]}
+                    onPress={() => setFormData({ ...formData, category: cat })}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        formData.category === cat && styles.categoryChipTextSelected,
+                      ]}
+                    >
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -555,6 +596,31 @@ const styles = StyleSheet.create({
   },
   emojiText: {
     fontSize: 24,
+  },
+  categoryPicker: {
+    marginBottom: 4,
+  },
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#0f0f23',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    marginRight: 8,
+  },
+  categoryChipSelected: {
+    borderColor: '#FF6B6B',
+    backgroundColor: 'rgba(255,107,107,0.15)',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    color: '#aaa',
+    fontWeight: '500',
+  },
+  categoryChipTextSelected: {
+    color: '#FF6B6B',
+    fontWeight: '600',
   },
   saveButton: {
     backgroundColor: '#FF6B6B',

@@ -98,6 +98,12 @@ export const authAPI = {
     const response = await api.get("/auth/me");
     return response.data;
   },
+
+  // Get profile stats (order count, favorite count, points)
+  getProfileStats: async () => {
+    const response = await api.get("/auth/profile-stats");
+    return response.data;
+  },
 };
 
 // Food & Order API functions
@@ -198,6 +204,19 @@ export const adminAPI = {
     return response.data;
   },
 
+  // Get revenue statistics (period: today | week | month | all)
+  getRevenue: async (period?: string) => {
+    const params = period ? { period } : {};
+    const response = await api.get("/admin/revenue", { params });
+    return response.data;
+  },
+
+  // Get all categories (for add/edit food)
+  getCategories: async () => {
+    const response = await api.get("/admin/categories");
+    return response.data;
+  },
+
   // Get all foods (including unavailable)
   getFoods: async () => {
     const response = await api.get("/admin/foods");
@@ -251,12 +270,15 @@ export const adminAPI = {
   },
 
   // Get all users (with optional filters)
-  getUsers: async (params?: { search?: string; role?: "user" | "admin" }) => {
+  getUsers: async (params?: {
+    search?: string;
+    role?: "user" | "admin" | "staff" | "delivery";
+  }) => {
     const response = await api.get("/admin/users", { params });
     return response.data;
   },
 
-  // Update user (name & phone only)
+  // Update user (name, phone only)
   updateUser: async (
     id: string,
     payload: { name?: string; phone?: string },
@@ -268,6 +290,36 @@ export const adminAPI = {
   // Ban/unban user (toggle trạng thái active/inactive)
   banUser: async (id: string) => {
     const response = await api.put(`/admin/users/${id}/ban`);
+    return response.data;
+  },
+};
+
+// Staff API - xác nhận đơn hàng
+export const staffAPI = {
+  getOrders: async () => {
+    const response = await api.get("/staff/orders");
+    return response.data;
+  },
+  confirmOrder: async (id: string) => {
+    const response = await api.put(`/staff/orders/${id}/confirm`);
+    return response.data;
+  },
+};
+
+// Delivery API - chờ giao hàng, xác nhận đơn hàng thành công
+export const deliveryAPI = {
+  getOrders: async () => {
+    const response = await api.get("/delivery/orders");
+    return response.data;
+  },
+  updateOrderStatus: async (id: string, status: "delivering" | "completed") => {
+    const response = await api.put(`/delivery/orders/${id}/status`, { status });
+    return response.data;
+  },
+
+  // Get delivery driver earnings (% per order)
+  getEarnings: async () => {
+    const response = await api.get("/delivery/earnings");
     return response.data;
   },
 };

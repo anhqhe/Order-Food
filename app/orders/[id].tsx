@@ -32,9 +32,8 @@ interface Order {
 const STATUS_LABELS: Record<string, string> = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
-  // Fallback cho dữ liệu cũ trong DB
-  delivering: "Đã xác nhận",
-  completed: "Đã xác nhận",
+  delivering: "Chờ giao hàng",
+  completed: "Hoàn thành",
   cancelled: "Đã hủy",
 };
 

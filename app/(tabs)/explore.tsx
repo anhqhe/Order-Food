@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -8,11 +8,14 @@ import {
   ScrollView,
   Dimensions,
   StatusBar,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { authAPI } from "@/services/api";
 
 const { width } = Dimensions.get("window");
 
@@ -41,17 +44,49 @@ const menuItems = [
   },
 ];
 
-// Stats
-const stats = [
-  { label: "Đơn hàng", value: "12" },
-  { label: "Yêu thích", value: "28" },
-  { label: "Điểm", value: "450" },
-];
-
 import { Platform } from "react-native";
 
 export default function ProfileScreen() {
   const { user, logout, isAdmin } = useAuth();
+  const [stats, setStats] = useState([
+    { label: "Đơn hàng", value: "0" },
+    { label: "Yêu thích", value: "0" },
+    { label: "Điểm", value: "0" },
+  ]);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadProfileStats = useCallback(async () => {
+    try {
+      const response = await authAPI.getProfileStats();
+      if (response.success && response.data) {
+        const d = response.data;
+        setStats([
+          { label: "Đơn hàng", value: String(d.orderCount ?? 0) },
+          { label: "Yêu thích", value: String(d.favoriteCount ?? 0) },
+          { label: "Điểm", value: String(d.points ?? 0) },
+        ]);
+      }
+    } catch (error) {
+      console.error("Load profile stats error:", error);
+    } finally {
+      setLoadingStats(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && !isAdmin) {
+      loadProfileStats();
+    } else {
+      setLoadingStats(false);
+    }
+  }, [user, isAdmin, loadProfileStats]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadProfileStats();
+  }, [loadProfileStats]);
 
   const handleLogout = () => {
     if (Platform.OS === "web") {
@@ -84,6 +119,15 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          !isAdmin ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FF6B35"
+            />
+          ) : undefined
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -130,17 +174,23 @@ export default function ProfileScreen() {
 
           {/* Stats */}
           <View style={styles.statsContainer}>
-            {stats.map((stat, index) => (
-              <React.Fragment key={stat.label}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
-                </View>
-                {index < stats.length - 1 && (
-                  <View style={styles.statDivider} />
-                )}
-              </React.Fragment>
-            ))}
+            {loadingStats ? (
+              <View style={styles.statsLoading}>
+                <ActivityIndicator size="small" color="#FF6B35" />
+              </View>
+            ) : (
+              stats.map((stat, index) => (
+                <React.Fragment key={stat.label}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                    <Text style={styles.statLabel}>{stat.label}</Text>
+                  </View>
+                  {index < stats.length - 1 && (
+                    <View style={styles.statDivider} />
+                  )}
+                </React.Fragment>
+              ))
+            )}
           </View>
         </View>
 
@@ -354,6 +404,12 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  statsLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
   },
   premiumBanner: {
     marginHorizontal: 24,

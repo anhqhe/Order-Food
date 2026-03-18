@@ -46,7 +46,8 @@ type CartItem = {
 };
 
 export default function IndexScreen() {
-  const { isAuthenticated, isLoading, user, isAdmin } = useAuth();
+  const { isAuthenticated, isLoading, user, isAdmin, isStaff, isDelivery } =
+    useAuth();
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [categories, setCategories] = useState<
     { name: string; count: number }[]
@@ -73,13 +74,17 @@ export default function IndexScreen() {
         router.replace("/auth/login");
       } else if (isAdmin) {
         router.replace("/(admin)" as any);
+      } else if (isStaff) {
+        router.replace("/(staff)" as any);
+      } else if (isDelivery) {
+        router.replace("/(delivery)" as any);
       } else {
         loadFoods();
         loadCategories();
         loadFavorites();
       }
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, isAdmin, isStaff, isDelivery]);
 
   const loadCategories = async () => {
     try {
@@ -140,8 +145,8 @@ export default function IndexScreen() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && !isAdmin) loadAddresses();
-  }, [isAuthenticated, isAdmin, loadAddresses]);
+    if (isAuthenticated && !isAdmin && !isStaff && !isDelivery) loadAddresses();
+  }, [isAuthenticated, isAdmin, isStaff, isDelivery, loadAddresses]);
 
   const handleCategoryPress = (categoryName: string | null) => {
     setSelectedCategory(categoryName);

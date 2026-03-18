@@ -57,6 +57,10 @@ export default function LoginScreen() {
       const loggedInUser = await login(email.trim(), password);
       if (loggedInUser?.role === 'admin') {
         router.replace('/(admin)' as any);
+      } else if (loggedInUser?.role === 'staff') {
+        router.replace('/(staff)' as any);
+      } else if (loggedInUser?.role === 'delivery') {
+        router.replace('/(delivery)' as any);
       } else {
         router.replace('/(tabs)');
       }

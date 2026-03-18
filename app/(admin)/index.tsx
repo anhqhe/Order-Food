@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Dimensions,
   StatusBar,
+  TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,29 +25,41 @@ interface Stats {
   ordersByStatus: {
     pending: number;
     confirmed: number;
+    delivering: number;
+    completed: number;
     cancelled: number;
   };
 }
 
+type RevenuePeriod = 'today' | 'week' | 'month' | 'all';
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [revenueData, setRevenueData] = useState<{
+    revenue: number;
+    orderCount: number;
+    period: string;
+  } | null>(null);
+  const [revenuePeriod, setRevenuePeriod] = useState<RevenuePeriod>('month');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadStats = useCallback(async () => {
     try {
-      const response = await adminAPI.getStats();
-      if (response.success) {
-        setStats(response.data);
-      }
+      const [statsRes, revenueRes] = await Promise.all([
+        adminAPI.getStats(),
+        adminAPI.getRevenue(revenuePeriod),
+      ]);
+      if (statsRes.success) setStats(statsRes.data);
+      if (revenueRes.success) setRevenueData(revenueRes.data);
     } catch (error) {
       console.error('Load stats error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [revenuePeriod]);
 
   useEffect(() => {
     loadStats();
@@ -103,6 +116,8 @@ export default function AdminDashboard() {
   const statusItems = [
     { label: 'Chờ xác nhận', value: stats?.ordersByStatus.pending || 0, color: '#FFA502' },
     { label: 'Đã xác nhận', value: stats?.ordersByStatus.confirmed || 0, color: '#3742fa' },
+    { label: 'Chờ giao hàng', value: stats?.ordersByStatus.delivering || 0, color: '#2ed573' },
+    { label: 'Hoàn thành', value: stats?.ordersByStatus.completed || 0, color: '#4CAF50' },
     { label: 'Đã hủy', value: stats?.ordersByStatus.cancelled || 0, color: '#ff4757' },
   ];
 
@@ -143,6 +158,51 @@ export default function AdminDashboard() {
               <Text style={styles.statTitle}>{card.title}</Text>
             </LinearGradient>
           ))}
+        </View>
+
+        {/* Revenue Statistics */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>💰 Thống kê doanh thu</Text>
+          <View style={styles.periodRow}>
+            {[
+              { key: 'today' as RevenuePeriod, label: 'Hôm nay' },
+              { key: 'week' as RevenuePeriod, label: 'Tuần' },
+              { key: 'month' as RevenuePeriod, label: 'Tháng' },
+              { key: 'all' as RevenuePeriod, label: 'Tất cả' },
+            ].map((p) => (
+              <TouchableOpacity
+                key={p.key}
+                style={[
+                  styles.periodChip,
+                  revenuePeriod === p.key && styles.periodChipActive,
+                ]}
+                onPress={() => setRevenuePeriod(p.key)}
+              >
+                <Text
+                  style={[
+                    styles.periodChipText,
+                    revenuePeriod === p.key && styles.periodChipTextActive,
+                  ]}
+                >
+                  {p.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.revenueRow}>
+            <View style={styles.revenueItem}>
+              <Text style={styles.revenueLabel}>Doanh thu</Text>
+              <Text style={styles.revenueValue}>
+                {formatCurrency(revenueData?.revenue || 0)}
+              </Text>
+            </View>
+            <View style={styles.revenueItem}>
+              <Text style={styles.revenueLabel}>Số đơn hoàn thành</Text>
+              <Text style={styles.revenueValue}>
+                {revenueData?.orderCount || 0}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Order Status Breakdown */}
@@ -246,6 +306,52 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 16,
+  },
+  periodRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  periodChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#0f0f23',
+    borderWidth: 1,
+    borderColor: '#2a2a4a',
+  },
+  periodChipActive: {
+    borderColor: '#4facfe',
+    backgroundColor: 'rgba(79,172,254,0.15)',
+  },
+  periodChipText: {
+    fontSize: 13,
+    color: '#888',
+  },
+  periodChipTextActive: {
+    color: '#4facfe',
+    fontWeight: '600',
+  },
+  revenueRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  revenueItem: {
+    flex: 1,
+    backgroundColor: '#0f0f23',
+    borderRadius: 12,
+    padding: 16,
+  },
+  revenueLabel: {
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 4,
+  },
+  revenueValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4facfe',
   },
   statusList: {
     gap: 12,

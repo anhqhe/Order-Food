@@ -17,12 +17,12 @@ interface UserItem {
   name: string;
   email: string;
   phone: string;
-  role: "user" | "admin";
+  role: "user" | "admin" | "staff" | "delivery";
   isBanned?: boolean;
   createdAt?: string;
 }
 
-type RoleFilter = "all" | "user" | "admin";
+type RoleFilter = "all" | "user" | "admin" | "staff" | "delivery";
 
 export default function AdminUsersScreen() {
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -103,7 +103,10 @@ export default function AdminUsersScreen() {
             u._id === user._id ? { ...u, isBanned: newBanned } : u
           )
         );
-        Alert.alert("Thành công", response.message);
+        Alert.alert(
+          "Thành công",
+          newBanned ? "Khóa tài khoản thành công" : "Mở khóa thành công"
+        );
       } else {
         Alert.alert("Lỗi", response.message || "Không thể thay đổi trạng thái");
       }
@@ -119,10 +122,21 @@ export default function AdminUsersScreen() {
     }
   };
 
+  const getRoleConfig = (role: string, isBanned: boolean) => {
+    if (isBanned) return { label: "Banned", icon: "ban-outline", color: "#ff4757", style: styles.roleBadgeBanned };
+    switch (role) {
+      case "admin": return { label: "Admin", icon: "shield-checkmark", color: "#4CAF50", style: styles.roleBadgeAdmin };
+      case "staff": return { label: "Staff", icon: "person-outline", color: "#FFA502", style: styles.roleBadgeStaff };
+      case "delivery": return { label: "Tài xế", icon: "bicycle-outline", color: "#2ed573", style: styles.roleBadgeDelivery };
+      default: return { label: "User", icon: "person-circle-outline", color: "#FF6B6B", style: styles.roleBadgeUser };
+    }
+  };
+
   const renderUserItem = ({ item }: { item: UserItem }) => {
     const isAdmin = item.role === "admin";
     const isBanned = !!item.isBanned;
     const busy = workingId === item._id;
+    const roleConfig = getRoleConfig(item.role, isBanned);
 
     return (
       <View style={styles.card}>
@@ -143,24 +157,10 @@ export default function AdminUsersScreen() {
               )}
             </View>
           </View>
-          <View
-            style={[
-              styles.roleBadge,
-              isBanned ? styles.roleBadgeBanned : isAdmin ? styles.roleBadgeAdmin : styles.roleBadgeUser,
-            ]}
-          >
-            <Ionicons
-              name={isBanned ? "ban-outline" : isAdmin ? "shield-checkmark" : "person-circle-outline"}
-              size={16}
-              color={isBanned ? "#ff4757" : isAdmin ? "#4CAF50" : "#FF6B6B"}
-            />
-            <Text
-              style={[
-                styles.roleText,
-                isBanned ? styles.roleTextBanned : isAdmin ? styles.roleTextAdmin : styles.roleTextUser,
-              ]}
-            >
-              {isBanned ? "Banned" : isAdmin ? "Admin" : "User"}
+          <View style={[styles.roleBadge, roleConfig.style]}>
+            <Ionicons name={roleConfig.icon as any} size={16} color={roleConfig.color} />
+            <Text style={[styles.roleText, { color: roleConfig.color }]}>
+              {roleConfig.label}
             </Text>
           </View>
         </View>
@@ -210,6 +210,8 @@ export default function AdminUsersScreen() {
         {[
           { key: "all" as RoleFilter, label: "Tất cả" },
           { key: "admin" as RoleFilter, label: "Admin" },
+          { key: "staff" as RoleFilter, label: "Staff" },
+          { key: "delivery" as RoleFilter, label: "Tài xế" },
           { key: "user" as RoleFilter, label: "User" },
         ].map((item) => {
           const active = roleFilter === item.key;
@@ -365,6 +367,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
+    gap: 4,
   },
   roleBadgeAdmin: {
     backgroundColor: "rgba(76,175,80,0.15)",
@@ -373,6 +376,14 @@ const styles = StyleSheet.create({
   roleBadgeUser: {
     backgroundColor: "rgba(255,107,107,0.12)",
     borderColor: "#FF6B6B",
+  },
+  roleBadgeStaff: {
+    backgroundColor: "rgba(255,165,2,0.15)",
+    borderColor: "#FFA502",
+  },
+  roleBadgeDelivery: {
+    backgroundColor: "rgba(46,213,115,0.15)",
+    borderColor: "#2ed573",
   },
   roleBadgeBanned: {
     backgroundColor: "rgba(255,71,87,0.15)",
