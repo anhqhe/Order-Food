@@ -278,6 +278,18 @@ export const adminAPI = {
     return response.data;
   },
 
+  // Create new user (admin only)
+  createUser: async (userData: {
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    role: "user" | "admin" | "staff" | "delivery";
+  }) => {
+    const response = await api.post("/admin/users", userData);
+    return response.data;
+  },
+
   // Update user (name, phone only)
   updateUser: async (
     id: string,

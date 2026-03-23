@@ -394,15 +394,6 @@ export default function IndexScreen() {
                 </LinearGradient>
                 <Text style={styles.actionText}>Địa chỉ</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionCard}>
-                <LinearGradient
-                  colors={["#4B7BE5", "#6C63FF"]}
-                  style={styles.actionIconBg}
-                >
-                  <Ionicons name="gift-outline" size={24} color="#FFF" />
-                </LinearGradient>
-                <Text style={styles.actionText}>Ưu đãi</Text>
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -786,18 +777,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 70,
+    paddingBottom: 24,
   },
   greeting: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(255,255,255,0.5)",
     marginBottom: 4,
+    letterSpacing: 0.5,
   },
   userName: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "800",
     color: "#FFF",
+    letterSpacing: -0.5,
   },
   notificationBtn: {
     width: 48,
@@ -819,12 +812,14 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 20,
     marginHorizontal: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   searchInput: {
     flex: 1,
@@ -909,12 +904,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   categoryIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 68,
+    height: 68,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   categoryName: {
     fontSize: 13,
@@ -991,10 +988,12 @@ const styles = StyleSheet.create({
   featuredCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   featuredImageContainer: {
     width: 70,
@@ -1138,14 +1137,17 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginTop: 20,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   actionCard: {
-    width: (width - 64) / 4,
+    width: (width - 100) / 3,
     alignItems: "center",
-    marginBottom: 16,
   },
   actionIconBg: {
     width: 56,

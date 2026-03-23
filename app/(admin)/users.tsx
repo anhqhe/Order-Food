@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { adminAPI } from "@/services/api";
+import { router } from "expo-router";
 
 interface UserItem {
   _id: string;
@@ -234,7 +235,16 @@ export default function AdminUsersScreen() {
         })}
       </View>
 
-      <Text style={styles.countText}>{count} người dùng</Text>
+      <View style={styles.headerTitleRow}>
+        <Text style={styles.countText}>{count} người dùng</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => router.push("/(admin)/user-create")}
+        >
+          <Ionicons name="add" size={20} color="#FFF" />
+          <Text style={styles.addButtonText}>Tạo mới</Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={users}
@@ -305,8 +315,28 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 14,
     color: "#888",
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingBottom: 6,
+    paddingBottom: 10,
+    paddingTop: 6,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FF6B6B",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 4,
+  },
+  addButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 13,
   },
   listContainer: {
     paddingHorizontal: 16,
