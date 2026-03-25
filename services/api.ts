@@ -30,10 +30,8 @@ export const tokenStorage = {
 // Web: localhost, Android emulator: 10.0.2.2, iOS simulator: localhost
 const API_BASE_URL =
   Platform.OS === "web"
-    ? "http://localhost:5000/api"
-    : Platform.OS === "android"
-      ? "http://10.0.2.2:5000/api"
-      : "http://localhost:5000/api";
+    ? "http://localhost:5001/api"
+    : "http://192.168.51.101:5001/api";
 
 // Create axios instance
 const api = axios.create({
